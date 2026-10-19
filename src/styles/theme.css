@@ -1,0 +1,174 @@
+/* временная тема, дизайнер переделывает как хочет. не трогать имена переменных, вспомогательных классов и app-*, на них завязаны модули и App.vue */
+:root {
+  --c-primary: #1E8E7E;
+  --c-primary-deep: #17806F; /* для текста и кнопок, на основном бирюзовом белый текст плохо читается */
+  --c-primary-soft: #E0F3F0;
+  --c-bg: #F5F7FB;
+  --c-card: #FFFFFF;
+  --c-accent: #E8A33D;
+  --c-accent-soft: #FFF3DC;
+  --c-text: #1E2433;
+  --c-muted: #6B7280;
+  --c-border: #E3E7EE;
+  --radius: 16px;
+  --font: 'Onest', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+h1, h2, h3 { margin: 0 0 12px; line-height: 1.25; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea {
+  background: var(--c-card);
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+input[type=range] { accent-color: var(--c-primary); width: 100%; }
+input[type=checkbox] { accent-color: var(--c-primary); }
+
+/* вспомогательные классы, модули на них рассчитывают */
+
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field > span { font-size: 14px; color: var(--c-muted); }
+.muted { color: var(--c-muted); font-size: 14px; }
+
+@media (max-width: 720px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+
+/* каркас приложения: шапка, вкладки, подвал */
+
+.app-wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.app-header {
+  background: var(--c-card);
+  border-top: 4px solid var(--c-primary);
+  border-bottom: 1px solid var(--c-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.app-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 14px;
+  padding-bottom: 10px;
+}
+
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-logo {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 22px;
+}
+.app-logo span {
+  width: 6px;
+  border-radius: 3px;
+  background: var(--c-primary);
+}
+.app-logo span:nth-child(1) { height: 10px; }
+.app-logo span:nth-child(2) { height: 22px; }
+.app-logo span:nth-child(3) { height: 15px; background: var(--c-accent); }
+
+.app-name {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.app-tagline {
+  color: var(--c-muted);
+  font-size: 14px;
+}
+
+.app-demo {
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  color: var(--c-muted);
+  font-size: 14px;
+  cursor: pointer;
+}
+.app-demo:hover {
+  color: var(--c-primary-deep);
+  border-color: var(--c-primary);
+}
+
+.app-tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.app-tabs::-webkit-scrollbar { display: none; }
+
+.app-tab {
+  flex: none;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 10px 14px;
+  color: var(--c-muted);
+  font-weight: 500;
+  cursor: pointer;
+}
+.app-tab:hover { color: var(--c-text); }
+.app-tab.active {
+  color: var(--c-primary-deep);
+  border-bottom-color: var(--c-primary);
+}
+.app-tab:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+.app-main {
+  padding-top: 24px;
+  padding-bottom: 32px;
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.app-footer {
+  color: var(--c-muted);
+  font-size: 13px;
+  padding-bottom: 24px;
+}
+
+@media (max-width: 600px) {
+  .app-wrap { padding: 0 16px; }
+  .app-tagline { display: none; }
+}

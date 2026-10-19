@@ -1,0 +1,194 @@
+import { reactive, watch } from 'vue'
+
+const KEY = 'ritm_v1'
+
+function empty() {
+  return {
+    // пары: { id, day: 0-6 (0 = пн), start: '09:00', end: '10:30', title }
+    lessons: [],
+    // дела: { id, title, minutes, importance: 1-3, flexible: true/false,
+    //         deadline: 'YYYY-MM-DD' или null, firstStep: '', done: false, regular: false }
+    tasks: [],
+    // чек-ины: { date: 'YYYY-MM-DD', mood: 1-5, sleep: часы, load: 'light' | 'normal' | 'heavy' }
+    checkins: [],
+    // эксперименты: { id, question, change, startDate, endDate,
+    //   marks: [{ date, energy: 1-5, helped: 'yes' | 'no' | 'unsure' }],
+    //   status: 'active' | 'finished', conclusion: 'keep' | 'change' | 'other' | null }
+    experiments: []
+  }
+}
+
+// если в сохранённом что-то побилось, берём только нормальные куски
+function load() {
+  const base = empty()
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY))
+    if (!saved || typeof saved !== 'object') return base
+    for (const k of ['lessons', 'tasks', 'checkins', 'experiments']) {
+      if (Array.isArray(saved[k])) base[k] = saved[k]
+    }
+    return base
+  } catch (e) {
+    return base
+  }
+}
+
+export const state = reactive(load())
+
+watch(state, () => {
+  try { localStorage.setItem(KEY, JSON.stringify(state)) } catch (e) {}
+}, { deep: true })
+
+export function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+}
+
+export function dateStr(d) {
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
+
+export function todayStr() {
+  return dateStr(new Date())
+}
+
+export function parseDate(s) {
+  const [y, m, d] = s.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+export function addDays(s, n) {
+  const d = parseDate(s)
+  d.setDate(d.getDate() + n)
+  return dateStr(d)
+}
+
+// 0 = пн, как у пар
+export function weekday(s) {
+  return (parseDate(s).getDay() + 6) % 7
+}
+
+export function addLesson(l) { state.lessons.push({ id: uid(), ...l }) }
+export function updateLesson(id, patch) {
+  const l = state.lessons.find(x => x.id === id)
+  if (l) Object.assign(l, patch)
+}
+export function setLessons(list) { state.lessons = list.map(l => ({ ...l, id: l.id || uid() })) }
+export function removeLesson(id) { state.lessons = state.lessons.filter(l => l.id !== id) }
+
+export function addTask(t) {
+  const task = {
+    id: uid(), title: '', minutes: 30, importance: 2, flexible: true,
+    deadline: null, firstStep: '', done: false, regular: false, ...t
+  }
+  state.tasks.push(task)
+  return task.id
+}
+export function updateTask(id, patch) {
+  const t = state.tasks.find(x => x.id === id)
+  if (t) Object.assign(t, patch)
+}
+export function removeTask(id) { state.tasks = state.tasks.filter(t => t.id !== id) }
+
+export function saveCheckin(c) {
+  const i = state.checkins.findIndex(x => x.date === c.date)
+  if (i >= 0) state.checkins[i] = c
+  else state.checkins.push(c)
+}
+export function getCheckin(date) { return state.checkins.find(c => c.date === date) || null }
+
+export function addExperiment(e) {
+  const exp = { id: uid(), marks: [], status: 'active', conclusion: null, ...e }
+  state.experiments.push(exp)
+  return exp.id
+}
+export function addMark(expId, mark) {
+  const e = state.experiments.find(x => x.id === expId)
+  if (!e) return
+  const i = e.marks.findIndex(m => m.date === mark.date)
+  if (i >= 0) e.marks[i] = mark
+  else e.marks.push(mark)
+}
+export function finishExperiment(id, conclusion) {
+  const e = state.experiments.find(x => x.id === id)
+  if (e) { e.status = 'finished'; e.conclusion = conclusion }
+}
+
+export function exportData() { return JSON.stringify(state, null, 2) }
+export function clearAll() { Object.assign(state, empty()) }
+
+// демо для проверки и защиты. рандом с фиксированным зерном, чтобы у всех получалось одинаково
+export function fillDemo() {
+  let seed = 7
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646 }
+  const today = todayStr()
+  const day = n => addDays(today, n)
+
+  const lessons = [
+    [0, '09:00', '10:30', 'Математический анализ'],
+    [0, '10:45', '12:20', 'Программирование'],
+    [0, '13:00', '14:35', 'История'],
+    [1, '10:45', '12:20', 'Английский язык'],
+    [1, '13:00', '14:35', 'Базы данных'],
+    [2, '09:00', '10:30', 'Дискретная математика'],
+    [2, '10:45', '12:20', 'Математический анализ'],
+    [2, '13:00', '14:35', 'Программирование'],
+    [2, '14:50', '16:25', 'Программирование'],
+    [3, '13:00', '14:35', 'Физкультура'],
+    [3, '14:50', '16:25', 'История'],
+    [4, '09:00', '10:30', 'Базы данных'],
+    [4, '10:45', '12:20', 'Английский язык'],
+    [5, '10:45', '12:20', 'Дискретная математика']
+  ].map(([d, start, end, title]) => ({ id: uid(), day: d, start, end, title }))
+
+  const task = t => ({
+    id: uid(), minutes: 30, importance: 2, flexible: true,
+    deadline: null, firstStep: '', done: false, regular: false, ...t
+  })
+  const tasks = [
+    task({ title: 'Доклад по истории', minutes: 90, importance: 3, deadline: day(2), firstStep: 'Открыть документ и набросать три тезиса' }),
+    task({ title: 'Лабораторная по программированию', minutes: 120, deadline: day(5) }),
+    task({ title: 'Прочитать главу по матанализу', minutes: 60, deadline: day(3), firstStep: 'Найти главу и прочитать первую страницу' }),
+    task({ title: 'Подготовиться к контрольной по английскому', minutes: 60, importance: 3, deadline: day(1), firstStep: 'Выписать 10 слов из прошлого урока' }),
+    task({ title: 'Смена в кофейне', minutes: 240, flexible: false, regular: true }),
+    task({ title: 'Тренировка', minutes: 60, regular: true }),
+    task({ title: 'Купить продукты', minutes: 30, importance: 1 }),
+    task({ title: 'Сдать справку в деканат', minutes: 15, importance: 1, done: true })
+  ]
+
+  // примерно семестр отметок, сегодня пустое, чтобы показать чек-ин вживую.
+  // последний месяц тяжелее (сессия близко), а при недосыпе настроение ниже
+  const checkins = []
+  for (let i = 120; i >= 1; i--) {
+    const date = day(-i)
+    const wd = weekday(date)
+    const session = i <= 28 && wd >= 1 && wd <= 3
+    if (!session && rnd() < 0.12) continue
+    let load = rnd() < 0.25 ? 'light' : rnd() < 0.75 ? 'normal' : 'heavy'
+    if (session) load = 'heavy'
+    if (wd === 6 && load === 'heavy') load = 'light'
+    const heavy = load === 'heavy' ? 1 : 0
+    const sleep = clamp(Math.round((7.2 + (rnd() - 0.5) * 3.5 - heavy * 0.8) * 2) / 2, 4, 10)
+    const mood = clamp(Math.round(2.4 + (sleep - 5) * 0.6 + (rnd() - 0.5) * 1.6 - heavy * 0.5), 1, 5)
+    checkins.push({ date, mood, sleep, load })
+  }
+
+  const start = day(-30)
+  const experiments = [{
+    id: uid(),
+    question: 'Мне легче, если лечь до 00:00',
+    change: 'Ложиться до полуночи, телефон убирать в 23:30',
+    startDate: start,
+    endDate: addDays(start, 6),
+    marks: [
+      [0, 3, 'unsure'], [1, 4, 'yes'], [2, 2, 'no'], [4, 4, 'yes'], [5, 4, 'yes'], [6, 5, 'yes']
+    ].map(([n, energy, helped]) => ({ date: addDays(start, n), energy, helped })),
+    status: 'finished',
+    conclusion: 'keep'
+  }]
+
+  Object.assign(state, { lessons, tasks, checkins, experiments })
+}
+
+function clamp(x, min, max) { return Math.min(max, Math.max(min, x)) }
