@@ -9,12 +9,23 @@ import StatsModule from './modules/StatsModule.vue'
 import { state, fillDemo } from './store.js'
 
 const tabs = [
-  { id: 'today',      title: 'Сегодня',     modules: [PlannerModule] },
-  { id: 'schedule',   title: 'Расписание',  modules: [ScheduleModule] },
-  { id: 'tasks',      title: 'Дела',        modules: [TasksModule] },
-  { id: 'checkin',    title: 'Чек-ин',      modules: [CheckinModule] },
-  { id: 'experiment', title: 'Эксперимент', modules: [ExperimentModule] },
-  { id: 'stats',      title: 'Статистика',  modules: [StatsModule] }
+  { id: 'today', title: 'Сегодня', icon: '◷', modules: [PlannerModule],
+    sub: 'Не нужно успеть всё. Давай выберем, что сегодня важнее.' },
+  { id: 'schedule', title: 'Расписание', icon: '▦', modules: [ScheduleModule],
+    eyebrow: 'Расписание', head: 'Не сверяйся с тремя источниками',
+    sub: 'Добавь расписание пар один раз и проверь распознанные занятия.' },
+  { id: 'tasks', title: 'Дела', icon: '☰', modules: [TasksModule],
+    eyebrow: 'Дела', head: 'Начни с малого',
+    sub: 'Большую задачу можно начать с одного маленького шага.' },
+  { id: 'checkin', title: 'Чек-ин', icon: '♡', modules: [CheckinModule],
+    eyebrow: 'Чек-ин', head: 'Как ты сегодня?',
+    sub: 'Полминуты. Отметка только для тебя, можно пропустить.' },
+  { id: 'experiment', title: 'Эксперимент', icon: '✳', modules: [ExperimentModule],
+    eyebrow: 'Лаборатория личного ритма', head: 'Попробуй свой способ',
+    sub: 'Выбери одно изменение на неделю. Цель — понять, что помогает именно тебе.' },
+  { id: 'stats', title: 'Статистика', icon: '◉', modules: [StatsModule],
+    eyebrow: 'Наблюдения', head: 'Твой ритм',
+    sub: 'Как менялись настроение, сон и нагрузка. Наблюдение, а не оценка.' }
 ]
 
 // вкладка хранится в адресе (#tasks), чтобы после f5 не кидало на первую
@@ -29,11 +40,21 @@ const active = computed(() => tabs.find(t => t.id === activeId.value))
 function select(id) {
   activeId.value = id
   history.replaceState(null, '', '#' + id)
+  scrollTo({ top: 0 })
 }
 
 function onHashChange() { activeId.value = fromHash() }
 onMounted(() => window.addEventListener('hashchange', onHashChange))
 onUnmounted(() => window.removeEventListener('hashchange', onHashChange))
+
+// у «сегодня» шапка живая: дата и приветствие по времени суток
+const now = new Date()
+const todayEyebrow = now.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).replace(', ', ' · ')
+const h = now.getHours()
+const greeting = h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер'
+
+const eyebrow = computed(() => active.value.id === 'today' ? todayEyebrow : active.value.eyebrow)
+const head = computed(() => active.value.id === 'today' ? greeting : active.value.head)
 
 const hasData = computed(() =>
   state.lessons.length + state.tasks.length + state.checkins.length + state.experiments.length > 0
@@ -46,35 +67,50 @@ function demo() {
 </script>
 
 <template>
-  <header class="app-header">
-    <div class="app-wrap app-header-inner">
+  <div class="app-layout">
+    <aside class="app-side">
       <div class="app-brand">
-        <span class="app-logo" aria-hidden="true">
-          <span></span><span></span><span></span>
-        </span>
-        <span class="app-name">Ритм</span>
+        <div class="app-logo">
+          <svg viewBox="0 0 36 36" aria-hidden="true">
+            <path d="M5 23c6 0 6-11 13-11s7 12 13 12" fill="none" stroke="#EFF5DA" stroke-width="2.8" stroke-linecap="round" />
+            <path d="M5 17c5 0 6-8 12-8 5 0 7 8 14 8" fill="none" stroke="#FFFFFF" stroke-opacity=".72" stroke-width="2.2" stroke-linecap="round" />
+          </svg>
+        </div>
+        ритм
       </div>
-      <span class="app-tagline">Расписание, дела и силы в одном месте</span>
-      <button class="app-demo" @click="demo">Заполнить демо</button>
-    </div>
 
-    <nav class="app-wrap app-tabs" aria-label="Разделы">
-      <button
-        v-for="t in tabs"
-        :key="t.id"
-        class="app-tab"
-        :class="{ active: t.id === activeId }"
-        :aria-current="t.id === activeId ? 'page' : null"
-        @click="select(t.id)"
-      >{{ t.title }}</button>
-    </nav>
-  </header>
+      <div class="eyebrow app-navlabel">Твоё пространство</div>
+      <nav class="app-nav" aria-label="Разделы">
+        <button
+          v-for="t in tabs"
+          :key="t.id"
+          class="app-tab"
+          :class="{ active: t.id === activeId }"
+          :aria-current="t.id === activeId ? 'page' : null"
+          @click="select(t.id)"
+        ><i aria-hidden="true">{{ t.icon }}</i>{{ t.title }}</button>
+      </nav>
 
-  <main class="app-wrap app-main">
-    <component :is="m" v-for="(m, i) in active.modules" :key="activeId + i" />
-  </main>
+      <div class="app-side-foot">
+        Данные хранятся только на этом устройстве.
+      </div>
+    </aside>
 
-  <footer class="app-wrap app-footer">
-    Данные хранятся только на этом устройстве. Это наблюдение о своём опыте, а не медицинский вывод.
-  </footer>
+    <main class="app-main">
+      <div class="app-top">
+        <span class="eyebrow">Твой учебный ритм</span>
+        <button class="app-demo" @click="demo">Заполнить демо</button>
+      </div>
+
+      <header class="app-head">
+        <div class="eyebrow">{{ eyebrow }}</div>
+        <h1>{{ head }}</h1>
+        <p>{{ active.sub }}</p>
+      </header>
+
+      <div class="app-content">
+        <component :is="m" v-for="(m, i) in active.modules" :key="activeId + i" />
+      </div>
+    </main>
+  </div>
 </template>

@@ -8,15 +8,13 @@ defineProps({ active: { type: Boolean, default: false } })
 
 <style scoped>
 .base-chip {
-  border-radius: 999px;
-  padding: 6px 14px;
-  background: var(--c-card);
   border: 1px solid var(--c-border);
-  cursor: pointer;
+  background: var(--c-card);
+  border-radius: 99px;
+  padding: 6px 11px;
+  font-size: 12px;
+  color: #718079;
 }
-.active {
-  background: var(--c-primary-soft);
-  border-color: var(--c-primary);
-  color: var(--c-primary-deep);
-}
+.base-chip:hover { border-color: #C9DBCE; }
+.active { background: var(--c-primary-soft); border-color: #C9DBCE; color: var(--c-primary); font-weight: 600; }
 </style>

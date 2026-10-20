@@ -1,11 +1,19 @@
 <script setup>
-defineProps({ title: { type: String, default: '' } })
+defineProps({
+  eyebrow: { type: String, default: '' },
+  title: { type: String, default: '' },
+  sub: { type: String, default: '' }
+})
 </script>
 
 <template>
   <section class="base-card">
-    <header v-if="title || $slots.actions" class="base-card-head">
-      <h3 v-if="title">{{ title }}</h3>
+    <header v-if="eyebrow || title || sub || $slots.actions" class="base-card-head">
+      <div>
+        <div v-if="eyebrow" class="eyebrow">{{ eyebrow }}</div>
+        <h2 v-if="title">{{ title }}</h2>
+        <p v-if="sub" class="muted">{{ sub }}</p>
+      </div>
       <div v-if="$slots.actions" class="base-card-actions"><slot name="actions" /></div>
     </header>
     <slot />
@@ -15,17 +23,18 @@ defineProps({ title: { type: String, default: '' } })
 <style scoped>
 .base-card {
   background: var(--c-card);
-  border: 1px solid var(--c-border);
+  border: 1px solid #EBEFEB;
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 19px;
+  box-shadow: var(--shadow);
 }
 .base-card-head {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 14px;
 }
-.base-card-head h3 { margin: 0; }
+.base-card-head h2 { margin: 4px 0; }
+.base-card-actions { flex: none; }
 </style>

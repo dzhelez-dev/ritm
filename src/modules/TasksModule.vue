@@ -1,8 +1,5 @@
 <template>
-  <section class="stub">
-    <h2>Дела</h2>
-    <p>Модуль ещё в работе.</p>
-  </section>
+  <section class="stub">Модуль ещё в работе.</section>
 </template>
 
 <style scoped>
@@ -11,6 +8,6 @@
   border: 1px dashed var(--c-border);
   border-radius: var(--radius);
   padding: 24px;
+  color: var(--c-muted);
 }
-.stub p { margin: 0; color: var(--c-muted); }
 </style>

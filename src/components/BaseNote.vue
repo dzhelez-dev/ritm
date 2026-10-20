@@ -8,9 +8,11 @@ defineProps({ type: { type: String, default: 'info' } })
 
 <style scoped>
 .base-note {
-  border-radius: 12px;
-  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
+  font-size: 13px;
+  line-height: 1.5;
 }
-.info { background: var(--c-primary-soft); }
-.warn { background: var(--c-accent-soft); }
+.info { background: var(--c-hint); color: #52695E; }
+.warn { background: var(--c-accent-soft); color: var(--c-accent-deep); }
 </style>
