@@ -14,6 +14,7 @@ const sleep = ref(existingToday ? existingToday.sleep : 7)
 const load = ref(existingToday ? existingToday.load : null)
 
 const savedNotice = ref(false)
+const reminderDismissed = ref(false)
 
 const isFormValid = computed(() => mood.value !== null && load.value !== null)
 
@@ -31,7 +32,6 @@ const handleSave = () => {
   }, 3000)
 }
 
-// Переключатель периода графика
 const chartMode = ref('week')
 
 const chartDays = computed(() => {
@@ -68,6 +68,55 @@ const chartStats = computed(() => {
     goodDaysCount,
     totalRecords: records.length
   }
+})
+
+// Автоматические наблюдения
+const observationText = computed(() => {
+  const records = state.checkins
+  if (records.length < 5) {
+    return 'Нужно ещё несколько отметок, чтобы заметить закономерность.'
+  }
+
+  const lowSleepRecords = records.filter(r => r.sleep < 6)
+  const normalSleepRecords = records.filter(r => r.sleep >= 6)
+  if (lowSleepRecords.length >= 3 && normalSleepRecords.length >= 3) {
+    const avgLow = lowSleepRecords.reduce((acc, r) => acc + r.mood, 0) / lowSleepRecords.length
+    const avgNormal = normalSleepRecords.reduce((acc, r) => acc + r.mood, 0) / normalSleepRecords.length
+    if (avgNormal - avgLow >= 0.5) {
+      return `В дни после сна меньше 6 часов настроение у тебя в среднем ${avgLow.toFixed(1).replace('.', ',')}, в остальные ${avgNormal.toFixed(1).replace('.', ',')}. Стоит это заметить.`
+    }
+  }
+
+  const last7Days = []
+  for (let i = 6; i >= 0; i--) {
+    last7Days.push(getCheckin(addDays(today, -i)))
+  }
+  const heavyCount = last7Days.filter(r => r && r.load === 'heavy').length
+  if (heavyCount >= 3) {
+    return 'Много тяжёлых дней подряд. Может, стоит запланировать паузу.'
+  }
+
+  return 'Пока явных закономерностей нет. Это тоже нормально.'
+})
+
+// Проверка мягкого напоминания по трем отрезкам
+const showHeavyWarning = computed(() => {
+  if (reminderDismissed.value) return false
+
+  const checkPeriod = (startOffset, endOffset) => {
+    let heavyCnt = 0
+    for (let i = startOffset; i >= endOffset; i--) {
+      const c = getCheckin(addDays(today, -i))
+      if (c && c.load === 'heavy') heavyCnt++
+    }
+    return heavyCnt >= 3
+  }
+
+  const p1 = checkPeriod(1, 7)
+  const p2 = checkPeriod(8, 14)
+  const p3 = checkPeriod(15, 21)
+
+  return p1 && p2 && p3
 })
 </script>
 
@@ -171,6 +220,22 @@ const chartStats = computed(() => {
         </div>
       </BaseCard>
     </div>
+
+    <!-- Заметки с наблюдениями -->
+    <BaseNote type="info">
+      {{ observationText }}
+    </BaseNote>
+
+    <!-- Мягкое напоминание -->
+    <BaseNote v-if="showHeavyWarning" type="warn">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+        <div>
+          Три недели подряд были тяжелее обычного. Если хочется, можно поговорить со студенческой службой поддержки
+          <div class="muted" style="font-size: 10px; margin-top: 2px;">Видно только тебе</div>
+        </div>
+        <button type="button" class="close-btn" @click="reminderDismissed = true" aria-label="Закрыть">×</button>
+      </div>
+    </BaseNote>
   </div>
 </template>
 
@@ -262,6 +327,20 @@ const chartStats = computed(() => {
 
 .bar-label.today-label {
   font-weight: 700;
+  color: var(--c-text);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--c-muted);
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.close-btn:hover {
   color: var(--c-text);
 }
 </style>
