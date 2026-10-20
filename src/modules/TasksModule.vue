@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, nextTick } from 'vue'
-import { state, addTask, updateTask, removeTask, todayStr, addDays, dateStr } from '../store.js'
+import { state, addTask, updateTask, removeTask, todayStr, addDays, parseDate } from '../store.js'
 import BaseCard from '../components/BaseCard.vue'
 import BaseButton from '../components/BaseButton.vue'
 import BaseChip from '../components/BaseChip.vue'
@@ -73,7 +73,7 @@ const getDeadlineText = (d) => {
   if (d === today) return 'сегодня'
   if (d === tomorrow) return 'завтра'
   if (d < today) return 'срок прошёл'
-  return `до ${dateStr(d)}`
+  return 'до ' + parseDate(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', '')
 }
 
 // действия с формой
@@ -90,7 +90,7 @@ const submitNewTask = () => {
     return
   }
   
-  addTask({ ...form.value })
+  addTask({ ...form.value, deadline: form.value.deadline || null })
   form.value = getEmptyForm()
   formError.value = ''
 }
@@ -132,7 +132,7 @@ const openEdit = (task, focusFirstStep = false) => {
 
 const saveEdit = () => {
   if (!editForm.value.title.trim()) return
-  updateTask(editingId.value, { ...editForm.value })
+  updateTask(editingId.value, { ...editForm.value, deadline: editForm.value.deadline || null })
   editingId.value = null
   editForm.value = null
 }
@@ -162,7 +162,7 @@ const cancelEdit = () => {
           <div class="field stack" style="gap: 0.25rem">
             <label>Название</label>
             <input v-model="form.title" type="text" placeholder="Что нужно сделать?">
-            <span v-if="formError" class="muted small" style="color: var(--c-primary)">{{ formError }}</span>
+            <span v-if="formError" class="muted" style="color: var(--c-primary)">{{ formError }}</span>
           </div>
 
           <div class="field stack" style="gap: 0.25rem">
@@ -170,22 +170,22 @@ const cancelEdit = () => {
             <div class="chips row" style="flex-wrap: wrap; align-items: center">
               <BaseChip 
                 v-for="m in [15, 30, 60, 90, 120]" :key="m"
-                :selected="form.minutes === m"
+                :active="form.minutes === m"
                 @click="form.minutes = m"
               >
                 {{ formatMin(m) }}
               </BaseChip>
               <input v-model.number="form.minutes" type="number" min="1" style="width: 80px; padding: 0.25rem 0.5rem">
-              <span class="muted small">мин</span>
+              <span class="muted">мин</span>
             </div>
           </div>
 
           <div class="field stack" style="gap: 0.25rem">
             <label>Важность</label>
             <div class="chips row">
-              <BaseChip :selected="form.importance === 1" @click="form.importance = 1">Обычное</BaseChip>
-              <BaseChip :selected="form.importance === 2" @click="form.importance = 2">Важное</BaseChip>
-              <BaseChip :selected="form.importance === 3" @click="form.importance = 3">Срочное</BaseChip>
+              <BaseChip :active="form.importance === 1" @click="form.importance = 1">Обычное</BaseChip>
+              <BaseChip :active="form.importance === 2" @click="form.importance = 2">Важное</BaseChip>
+              <BaseChip :active="form.importance === 3" @click="form.importance = 3">Срочное</BaseChip>
             </div>
           </div>
 
@@ -214,7 +214,7 @@ const cancelEdit = () => {
           <div class="field stack" style="gap: 0.25rem">
             <label class="row" style="align-items: baseline; justify-content: space-between">
               <span>Первый шаг</span>
-              <span class="muted small" style="font-weight: normal">Без таймера, просто начать</span>
+              <span class="muted" style="font-weight: normal">Без таймера, просто начать</span>
             </label>
             <input 
               v-model="form.firstStep" 
@@ -247,11 +247,11 @@ const cancelEdit = () => {
               
               <div class="row" style="flex-wrap: wrap; align-items: center; gap: 1rem">
                 <div class="row" style="align-items: center; gap: 0.5rem">
-                  <span class="muted small">Минут:</span>
+                  <span class="muted">Минут:</span>
                   <input v-model.number="editForm.minutes" type="number" min="1" style="width: 70px; padding: 0.2rem">
                 </div>
                 <div class="row" style="align-items: center; gap: 0.5rem">
-                  <span class="muted small">Важность:</span>
+                  <span class="muted">Важность:</span>
                   <select v-model.number="editForm.importance" style="padding: 0.2rem">
                     <option :value="1">Обычное</option>
                     <option :value="2">Важное</option>
@@ -259,7 +259,7 @@ const cancelEdit = () => {
                   </select>
                 </div>
                 <div class="row" style="align-items: center; gap: 0.5rem">
-                  <span class="muted small">Дедлайн:</span>
+                  <span class="muted">Дедлайн:</span>
                   <input v-model="editForm.deadline" type="date" style="padding: 0.2rem">
                 </div>
               </div>
@@ -267,16 +267,16 @@ const cancelEdit = () => {
               <div class="row" style="gap: 1.5rem; flex-wrap: wrap">
                 <label class="row" style="align-items: center; gap: 0.5rem">
                   <input v-model="editForm.flexible" type="checkbox">
-                  <span class="small">Можно переносить</span>
+                  <span>Можно переносить</span>
                 </label>
                 <label class="row" style="align-items: center; gap: 0.5rem">
                   <input v-model="editForm.regular" type="checkbox">
-                  <span class="small">Регулярное</span>
+                  <span>Регулярное</span>
                 </label>
               </div>
 
               <div class="stack" style="gap: 0.25rem">
-                <span class="muted small">Первый шаг:</span>
+                <span class="muted">Первый шаг:</span>
                 <input ref="editFirstStepInput" v-model="editForm.firstStep" type="text" placeholder="С чего начать?">
               </div>
 
@@ -307,7 +307,7 @@ const cancelEdit = () => {
 
               <div class="chips row" style="flex-wrap: wrap; gap: 0.5rem">
                 <span class="pill muted">{{ formatMin(task.minutes) }}</span>
-                <span v-if="task.importance === 3" class="pill urgent-pill">Срочное</span>
+                <span v-if="task.importance === 3" class="pill orange">Срочное</span>
                 <span v-if="task.importance === 1" class="pill muted" style="opacity: 0.7">Обычное</span>
                 <span v-if="!task.flexible" class="pill muted">Обязательно сегодня</span>
                 <span v-if="task.regular" class="pill muted">Регулярно</span>
@@ -316,9 +316,9 @@ const cancelEdit = () => {
 
               <!-- первый шаг -->
               <div v-if="task.firstStep" style="margin-top: 0.5rem">
-                <div v-if="!startedTasks.has(task.id)" class="row" style="align-items: center; justify-content: space-between; background: var(--c-surface); padding: 0.75rem; border-radius: 8px">
+                <div v-if="!startedTasks.has(task.id)" class="row" style="align-items: center; justify-content: space-between; background: var(--c-hint); padding: 0.75rem; border-radius: 8px">
                   <div class="stack" style="gap: 0.15rem">
-                    <span class="muted small">Первый шаг:</span>
+                    <span class="muted">Первый шаг:</span>
                     <span>{{ task.firstStep }}</span>
                   </div>
                   <BaseButton variant="ghost" @click="startTask(task.id)">Начать</BaseButton>
@@ -329,14 +329,14 @@ const cancelEdit = () => {
                   <div style="font-size: 1.1rem; margin-bottom: 0.75rem">{{ task.firstStep }}</div>
                   <div class="row" style="align-items: center">
                     <BaseButton variant="primary" style="opacity: 0.8; cursor: default" @click.prevent>Начал ✓</BaseButton>
-                    <span class="muted small">Ты начал — продолжай в своём ритме</span>
+                    <span class="muted">Ты начал — продолжай в своём ритме</span>
                   </div>
                 </BaseNote>
               </div>
 
               <!-- подсказка добавить первый шаг -->
-              <div v-else-if="task.minutes >= 60" class="row" style="align-items: center; background: var(--c-surface); padding: 0.5rem 0.75rem; border-radius: 8px; margin-top: 0.25rem">
-                <span class="muted small">Добавь первый шаг, так проще начать большое дело</span>
+              <div v-else-if="task.minutes >= 60" class="row" style="align-items: center; background: var(--c-hint); padding: 0.5rem 0.75rem; border-radius: 8px; margin-top: 0.25rem">
+                <span class="muted">Добавь первый шаг, так проще начать большое дело</span>
                 <BaseButton variant="link" @click="openEdit(task, true)">Добавить</BaseButton>
               </div>
             </div>
@@ -366,8 +366,8 @@ const cancelEdit = () => {
             <div class="stack" style="flex: 1; gap: 0.25rem; margin-top: -2px">
               <div style="text-decoration: line-through; opacity: 0.6">{{ task.title }}</div>
               <div class="row" style="gap: 0.5rem; opacity: 0.5">
-                <span class="small muted">{{ formatMin(task.minutes) }}</span>
-                <span v-if="task.regular" class="small muted">регулярно</span>
+                <span class="muted">{{ formatMin(task.minutes) }}</span>
+                <span v-if="task.regular" class="muted">регулярно</span>
               </div>
             </div>
           </div>
@@ -390,7 +390,7 @@ const cancelEdit = () => {
   transition: border-color 0.2s;
 }
 .task-row:hover {
-  border-color: var(--c-text-muted);
+  border-color: var(--c-muted);
 }
 .task-checkbox {
   width: 1.25rem;
@@ -398,12 +398,6 @@ const cancelEdit = () => {
   margin-top: 0.15rem;
   cursor: pointer;
   accent-color: var(--c-primary);
-}
-.urgent-pill {
-  color: var(--c-bg);
-  background: var(--c-primary);
-  border-color: var(--c-primary);
-  font-weight: 500;
 }
 .done-row {
   border-color: transparent;
